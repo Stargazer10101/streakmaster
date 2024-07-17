@@ -1,0 +1,29 @@
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px; /* Reduce gap between cells */
+  margin: 1px; /* Reduce margin around the calendar */
+}
+
+.day, .empty-day {
+  width: 10px; /* Make width equal to height for square boxes */
+  height: 10px; /* Adjust size to fit screen */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  font-size: 6px; /* Adjust font size */
+}
+
+.empty-day {
+  background-color: #403a3a;
+}
+
+.day:hover {
+  background-color: #3c3838;
+}
+
+.stored-date {
+  background-color: lightgreen; 
+}

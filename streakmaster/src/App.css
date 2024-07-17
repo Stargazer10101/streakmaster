@@ -1,0 +1,26 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  overflow-x: auto; /* Enable horizontal scrolling if needed */
+}
+
+.calendar-wrapper {
+  width: calc(100% / 12 - 10px); /* Adjust based on your layout needs */
+  min-width: 60px; /* Set a minimum width to prevent the calendar from shrinking too much */
+  margin: 5px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.calendar-wrapper h2 {
+  font-size: 10px;
+  margin: 5px 0;
+}
+
+.task-wrapper {
+  margin-bottom: 20px;
+}
+
