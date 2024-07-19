@@ -6,8 +6,9 @@ import Calendar from './Calendar';
 import Header from './Header';
 
 function App() {
-  const year = 2024;
-  const month = 6; // July (months are zero-indexed in JavaScript)
+  const year = new Date().getFullYear();
+  
+  const month = new Date().getMonth() + 1; // July (months are zero-indexed in JavaScript)
 
   const [inputValue, setInputValue] = useState('');
   const [tasks, setTasks] = useState([]);
