@@ -1,33 +1,32 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const Calendar = ({ year, month }) => {
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfWeek = new Date(year, month, 1).getDay();
+const Calendar = ({ year, month, taskId }) => {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDayOfWeek = new Date(year, month - 1, 1).getDay();  // Correcting month to be 0-based for Date
 
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [storedDates, setStoredDates] = useState([]);
+
+  useEffect(() => {
+    // Fetch stored dates for the given taskId
+    axios.get('http://localhost:3000', { params: { id: taskId } })
+      .then(response => {
+        console.log('Response from server:', response.data);
+        setStoredDates(response.data.dates);
+      })
+      .catch(error => {
+        console.error('Error fetching stored dates:', error);
+      });
+  }, [taskId]);
 
   const handleClick = (day) => {
-    const fullDate = `${year}-${month + 1}-${day}`;
-    
-    // Check if the date already exists in localStorage
-    const storedDate = localStorage.getItem(fullDate);
-  
-    if (storedDate) {
-      // Date already exists, so remove it from localStorage
-      localStorage.removeItem(fullDate);
-      setSelectedDate(null); // Clear selected date in state
-    } else {
-      // Date doesn't exist, store it in localStorage
-      localStorage.setItem(fullDate, fullDate);
-      setSelectedDate(fullDate);
-    }
-
+    const fullDate = `${year}-${month}-${day}`;
+    console.log(`Sending POST request with date: ${fullDate} and id: ${taskId}`);
     // Send date to server
-    axios.post('http://localhost:3000', { date: fullDate })
+    axios.post('http://localhost:3000', { date: fullDate, id: taskId })
       .then(response => {
         console.log('Date sent to server:', response.data);
+        setStoredDates(response.data.dates);
       })
       .catch(error => {
         console.error('Error sending date to server:', error);
@@ -36,27 +35,26 @@ const Calendar = ({ year, month }) => {
 
   const renderDays = () => {
     const days = [];
-  
+
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} className="empty-day" />);
     }
-  
+
     for (let day = 1; day <= daysInMonth; day++) {
-      const fullDate = `${year}-${month + 1}-${day}`;
-      const isStored = localStorage.getItem(fullDate) !== null;
-  
+      const fullDate = `${year}-${month}-${day}`;
+      const isStored = storedDates.includes(fullDate);
+
       const dayClassName = isStored ? 'day stored-date' : 'day';
-  
+
       days.push(
         <div key={day} className={dayClassName} onClick={() => handleClick(day)}>
           {day}
         </div>
       );
     }
-  
+
     return days;
   };
-  
 
   return (
     <div className="calendar">
