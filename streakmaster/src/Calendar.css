@@ -145,3 +145,12 @@
   outline: 2px solid #007bff;
   outline-offset: -2px;
 }
+
+.day.selected {
+  background-color: #90EE90;
+  color: #000;
+}
+
+.day:hover:not(.selected) {
+  background-color: #f0f0f0;
+}

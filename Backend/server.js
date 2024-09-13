@@ -9,10 +9,9 @@ const { query } = require('express-validator');
 const app = express();
 const port = process.env.PORT || 3000;
 
+//app.use(cors());
 
-app.use(cors());
 
-/*
 // CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow requests from the frontend
@@ -21,11 +20,12 @@ app.use(cors({
   credentials: true // Allow cookies (if needed)
 }));
 
-*/
 
 app.use(express.json());
 
 const getFilePath = (id) => path.join(__dirname, `${id}_dates.json`);
+
+const getDateFilePath = (taskId) => path.join(__dirname, `${taskId}_dates.json`);
 
 const getDatesFromFile = async (filePath) => {
   try {
@@ -40,19 +40,24 @@ const getDatesFromFile = async (filePath) => {
   }
 };
 
-const saveDateToFile = async (filePath, fullDate) => {
+const saveDateToFile = async (filePath, date) => {
   const dates = await getDatesFromFile(filePath);
-  dates.push(fullDate);
-  await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
+  if (!dates.includes(date)) {
+    dates.push(date);
+    await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
+  }
 };
 
-const removeDateFromFile = async (filePath, fullDate) => {
-  const dates = (await getDatesFromFile(filePath)).filter(date => date !== fullDate);
-  await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
+const removeDateFromFile = async (filePath, date) => {
+  const dates = await getDatesFromFile(filePath);
+  console.log('Before removal:', dates);
+  const updatedDates = dates.filter(d => d !== date);
+  console.log('After removal:', updatedDates);
+  await fs.writeFile(filePath, JSON.stringify(updatedDates), 'utf8');
 };
 
 app.get('/api/dates', 
-  query('id').isString().notEmpty(),
+  query('taskId').isString().notEmpty(),
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
@@ -60,19 +65,20 @@ app.get('/api/dates',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { id } = req.query;
-      const filePath = getFilePath(id);
+      const { taskId } = req.query;
+      const filePath = getDateFilePath(taskId);
       const dates = await getDatesFromFile(filePath);
 
-      res.status(200).json({ dates });
+      res.json({ dates });
     } catch (error) {
-      next(error);
+      console.error('Error fetching dates:', error);
+      res.status(500).json({ error: 'Failed to fetch dates' });
     }
 });
 
 app.post('/api/dates', 
   body('date').isISO8601().toDate(),
-  body('id').isString().notEmpty(),
+  body('taskId').isString().notEmpty(),
   async (req, res, next) => {
     try {
       const errors = validationResult(req);
@@ -80,23 +86,30 @@ app.post('/api/dates',
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { date, id } = req.body;
-      const filePath = getFilePath(id);
+      const { date, taskId } = req.body;
+      const dateString = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD format
+      console.log('Received request to update date:', dateString, 'for task:', taskId);
+      const filePath = getDateFilePath(taskId);
       
       const dates = await getDatesFromFile(filePath);
-      const dateExists = dates.includes(date);
+      console.log('Current dates:', dates);
+      const dateExists = dates.includes(dateString);
       
       if (dateExists) {
-        await removeDateFromFile(filePath, date);
+        console.log('Date exists, removing:', dateString);
+        await removeDateFromFile(filePath, dateString);
       } else {
-        await saveDateToFile(filePath, date);
+        console.log('Date does not exist, adding:', dateString);
+        await saveDateToFile(filePath, dateString);
       }
       
       const updatedDates = await getDatesFromFile(filePath);
+      console.log('Updated dates:', updatedDates);
       
       res.json({ dates: updatedDates });
     } catch (error) {
-      next(error);
+      console.error('Error updating dates:', error);
+      res.status(500).json({ error: 'Failed to update dates' });
     }
 });
 

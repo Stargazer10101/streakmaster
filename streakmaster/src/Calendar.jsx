@@ -1,68 +1,67 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const Calendar = ({ year, month, taskId }) => {
-  const [storedDates, setStoredDates] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchStoredDates = useCallback(async () => {
+  const fetchDates = useCallback(async () => {
+    console.log('Fetching dates for taskId:', taskId);
     setIsLoading(true);
     setError(null);
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await axios.get(`${API_BASE_URL}/api/dates`, { params: { id: taskId } });
-      setStoredDates(response.data.dates);
+      const response = await axios.get('/api/dates', { params: { taskId } });
+      setSelectedDates(response.data.dates);
+      console.log('Fetched dates:', response.data.dates);
     } catch (error) {
-      setError('Failed to fetch stored dates. Please try again.');
-      console.error('Error fetching stored dates:', error.response?.data || error.message);
+      console.error('Error fetching dates:', error);
+      setError('Failed to fetch dates');
     } finally {
       setIsLoading(false);
     }
   }, [taskId]);
 
   useEffect(() => {
-    fetchStoredDates();
-  }, [fetchStoredDates]);
+    fetchDates();
+  }, [fetchDates]);
 
-  const handleClick = useCallback(async (day) => {
+  const handleDateClick = async (day) => {
     const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    console.log('Clicking date:', fullDate, 'for taskId:', taskId);
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.post('http://localhost:3000/api/dates', { date: fullDate, id: taskId });
-      setStoredDates(response.data.dates);
+      const response = await axios.post('/api/dates', { date: fullDate, taskId });
+      setSelectedDates(response.data.dates);
+      console.log('Updated dates:', response.data.dates);
     } catch (error) {
-      setError('Failed to update date. Please try again.');
-      console.error('Error sending date to server:', error);
+      console.error('Error updating date:', error);
+      setError('Failed to update date');
     } finally {
       setIsLoading(false);
     }
-  }, [year, month, taskId]);
+  };
 
-  const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
-  const firstDayOfWeek = useMemo(() => new Date(year, month - 1, 1).getDay(), [year, month]);
-
-  const renderDays = useMemo(() => {
+  const renderCalendar = () => {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayOfWeek = new Date(year, month - 1, 1).getDay();
     const days = [];
 
     for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="empty-day" aria-hidden="true" />);
+      days.push(<div key={`empty-${i}`} className="empty-day"></div>);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
       const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isStored = storedDates.includes(fullDate);
-      const dayClassName = isStored ? 'day stored-date' : 'day';
-
+      const isSelected = selectedDates.includes(fullDate);
+      console.log(`Date ${fullDate} is selected:`, isSelected);
       days.push(
         <button
           key={day}
-          className={dayClassName}
-          onClick={() => handleClick(day)}
+          className={`day ${isSelected ? 'selected' : ''}`}
+          onClick={() => handleDateClick(day)}
           disabled={isLoading}
-          aria-label={`${isStored ? 'Remove' : 'Add'} date ${fullDate}`}
-          aria-pressed={isStored}
         >
           {day}
         </button>
@@ -70,18 +69,16 @@ const Calendar = ({ year, month, taskId }) => {
     }
 
     return days;
-  }, [daysInMonth, firstDayOfWeek, year, month, storedDates, handleClick, isLoading]);
+  };
 
-  if (error) {
-    return <div className="calendar-error" role="alert">{error}</div>;
-  }
+  if (error) return <div className="error">{error}</div>;
 
   return (
-    <div className="calendar" role="grid" aria-label={`Calendar for ${month}/${year}`}>
-      {isLoading && <div className="calendar-loading" aria-live="polite">Loading...</div>}
-      {renderDays}
+    <div className="calendar">
+      {isLoading && <div className="loading">Loading...</div>}
+      {renderCalendar()}
     </div>
   );
 };
 
-export default React.memo(Calendar);
+export default Calendar;
