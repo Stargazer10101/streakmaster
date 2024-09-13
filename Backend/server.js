@@ -1,87 +1,193 @@
+require('dotenv').config();
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
+const { body, validationResult } = require('express-validator');
+const { query } = require('express-validator');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+
 
 app.use(cors());
-app.use(bodyParser.json());
+
+/*
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow requests from the frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+  credentials: true // Allow cookies (if needed)
+}));
+
+*/
+
+app.use(express.json());
 
 const getFilePath = (id) => path.join(__dirname, `${id}_dates.json`);
 
-const getDatesFromFile = (filePath) => {
+const getDatesFromFile = async (filePath) => {
   try {
-    if (!fs.existsSync(filePath)) {
-      return [];
-    }
-    const data = fs.readFileSync(filePath, 'utf8');
+    await fs.access(filePath);
+    const data = await fs.readFile(filePath, 'utf8');
     return JSON.parse(data) || [];
   } catch (error) {
-    console.error('Error reading file:', error);
-    return [];
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
   }
 };
 
-const saveDateToFile = (filePath, fullDate) => {
-  const dates = getDatesFromFile(filePath);
+const saveDateToFile = async (filePath, fullDate) => {
+  const dates = await getDatesFromFile(filePath);
   dates.push(fullDate);
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(dates), 'utf8');
-  } catch (error) {
-    console.error('Error writing file:', error);
-  }
+  await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
 };
 
-const removeDateFromFile = (filePath, fullDate) => {
-  const dates = getDatesFromFile(filePath).filter(date => date !== fullDate);
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(dates), 'utf8');
-  } catch (error) {
-    console.error('Error writing file:', error);
-  }
+const removeDateFromFile = async (filePath, fullDate) => {
+  const dates = (await getDatesFromFile(filePath)).filter(date => date !== fullDate);
+  await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
 };
 
-app.get('/', (req, res) => {
-  const { id } = req.query;
-  console.log(`Received GET request with id: ${id}`);
-  if (!id) {
-    console.log('ID is required');
-    return res.status(400).send('ID is required');
-  }
+app.get('/api/dates', 
+  query('id').isString().notEmpty(),
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-  const filePath = getFilePath(id);
-  const dates = getDatesFromFile(filePath);
+      const { id } = req.query;
+      const filePath = getFilePath(id);
+      const dates = await getDatesFromFile(filePath);
 
-  console.log(`Retrieved dates for ID: ${id}`, dates);
-  return res.status(200).send({ dates });
+      res.status(200).json({ dates });
+    } catch (error) {
+      next(error);
+    }
 });
 
+app.post('/api/dates', 
+  body('date').isISO8601().toDate(),
+  body('id').isString().notEmpty(),
+  async (req, res, next) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
 
-app.post('/', (req, res) => {
-  const { date, id } = req.body;
-  console.log(`Received POST request with date: ${date} and id: ${id}`);
-  if (!date || !id) {
-    console.log('Date and ID are required');
-    return res.status(400).send('Date and ID are required');
-  }
+      const { date, id } = req.body;
+      const filePath = getFilePath(id);
+      
+      const dates = await getDatesFromFile(filePath);
+      const dateExists = dates.includes(date);
+      
+      if (dateExists) {
+        await removeDateFromFile(filePath, date);
+      } else {
+        await saveDateToFile(filePath, date);
+      }
+      
+      const updatedDates = await getDatesFromFile(filePath);
+      
+      res.json({ dates: updatedDates });
+    } catch (error) {
+      next(error);
+    }
+});
 
-  const filePath = getFilePath(id);
-  const dates = getDatesFromFile(filePath);
+// Helper function to get the tasks file path
+const getTasksFilePath = () => path.join(__dirname, 'tasks.json');
 
-  if (dates.includes(date)) {
-    removeDateFromFile(filePath, date);
-    console.log(`Removed date: ${date} for ID: ${id}`);
-    return res.status(200).send({ message: 'Date removed successfully', dates: getDatesFromFile(filePath) });
-  } else {
-    saveDateToFile(filePath, date);
-    console.log(`Saved date: ${date} for ID: ${id}`);
-    return res.status(200).send({ message: 'Date saved successfully', dates: getDatesFromFile(filePath) });
+// GET /api/tasks
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const tasksFilePath = getTasksFilePath();
+    const tasksData = await fs.readFile(tasksFilePath, 'utf8');
+    const tasks = JSON.parse(tasksData);
+    res.json(tasks);
+  } catch (error) {
+    console.error('Error reading tasks:', error);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
   }
 });
 
+// POST /api/tasks
+app.post('/api/tasks', body('name').notEmpty(), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const tasksFilePath = getTasksFilePath();
+    let tasks = [];
+    try {
+      const tasksData = await fs.readFile(tasksFilePath, 'utf8');
+      tasks = JSON.parse(tasksData);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    const newTask = {
+      id: Date.now().toString(),
+      name: req.body.name,
+      createdAt: new Date().toISOString()
+    };
+
+    tasks.push(newTask);
+    await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+    res.status(201).json(newTask);
+  } catch (error) {
+    console.error('Error creating task:', error);
+    res.status(500).json({ error: 'Failed to create task' });
+  }
+});
+
+// DELETE /api/tasks/:id
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const tasksFilePath = getTasksFilePath();
+    
+    // Read existing tasks
+    let tasks = [];
+    try {
+      const tasksData = await fs.readFile(tasksFilePath, 'utf8');
+      tasks = JSON.parse(tasksData);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+
+    // Find the index of the task to delete
+    const taskIndex = tasks.findIndex(task => task.id === taskId);
+
+    if (taskIndex === -1) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Remove the task
+    tasks.splice(taskIndex, 1);
+
+    // Write updated tasks back to file
+    await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+
+    res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    res.status(500).json({ error: 'Failed to delete task' });
+  }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).send('Something broke!');
+});
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

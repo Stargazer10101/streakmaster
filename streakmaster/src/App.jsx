@@ -1,18 +1,41 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "./App.css";
 import "./Calendar.css"; // Import the Calendar styles
 import Calendar from "./Calendar";
 import Header from "./Header";
+import axios from 'axios';
+
+// Set the base URL for all Axios requests
+axios.defaults.baseURL = 'http://localhost:3000';
 
 function App() {
-  const year = new Date().getFullYear();
-
-  const month = new Date().getMonth() + 1; // July (months are zero-indexed in JavaScript)
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1; // January is 0
 
   const [inputValue, setInputValue] = useState("");
   const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Function to get month name from month number
+  const fetchTasks = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('/api/tasks');
+      setTasks(response.data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setError('Failed to fetch tasks. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
   const getMonthName = (monthNumber) => {
     const months = [
       "January",
@@ -31,71 +54,101 @@ function App() {
     return months[monthNumber - 1];
   };
 
-  const handleClick = () => {
-    setTasks([...tasks, inputValue]);
-    setInputValue(""); // Clear input after adding
-    console.log(tasks);
+  const handleAddTask = async () => {
+    if (!inputValue.trim()) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post('api/tasks', { name: inputValue });
+      setTasks(prevTasks => [...prevTasks, response.data]);
+      setInputValue("");
+    } catch (err) {
+      setError('Failed to add task. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleChange = (event) => {
-    setInputValue(event.target.value);
+  const handleDeleteTask = async (taskId) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await axios.delete(`api/tasks/${taskId}`);
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    } catch (err) {
+      setError('Failed to delete task. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleScroll = useCallback((direction, event) => {
+    const container = event.target.closest('.calendar-window');
+    if (container) {
+      const scrollAmount = container.clientWidth;
+      container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    }
+  }, []);
+
+  const calendarRefs = useRef({});
+
+  useEffect(() => {
+    Object.values(calendarRefs.current).forEach(ref => {
+      if (ref) {
+        ref.scrollLeft = ref.scrollWidth;
+      }
+    });
+  }, [tasks]);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
-    <>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={handleChange}
-        placeholder="Add Quest"
-      />
-      <button onClick={handleClick}>Add Quest</button>
-      <div className="container">
-        {tasks.map((task, index) => (
-          <div
-            key={index}
-            className="task-wrapper"
-            style={{ marginBottom: "20px" }}
-          >
-            <h3>{task}</h3>
-            <div
-              className="calendar-section"
-              style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
-            >
-              {/* Render calendars for the current and previous months in the previous year */}
-              {Array.from({ length: 12 - month }, (_, j) => (
-                <div
-                  key={`${year - 1}-${month + 1 + j}-${index}`}
-                  className="calendar-wrapper"
-                >
-                  <h5>
-                    {getMonthName(month + 1 + j)} {year - 1}
-                  </h5>
-                  <Calendar
-                    year={year - 1}
-                    month={month + 1 + j}
-                    taskId={index}
-                  />
-                </div>
-              ))}
-              {/* Render calendars for the previous months in the current year */}
-              {Array.from({ length: month }, (_, i) => (
-                <div
-                  key={`${year}-${i + 1}-${index}`}
-                  className="calendar-wrapper"
-                >
-                  <h5>
-                    {getMonthName(i + 1)} {year}
-                  </h5>
-                  <Calendar year={year} month={i + 1} taskId={index+1} />
-                </div>
-              ))}
+    <div className="app-container">
+      <Header />
+      <div className="task-input">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Add Quest"
+        />
+        <button onClick={handleAddTask} disabled={isLoading}>Add Quest</button>
+      </div>
+      <div className="tasks-container">
+        {tasks.map((task) => (
+          <div key={task.id} className="task-wrapper">
+            <div className="task-header">
+              <h3>{task.name}</h3>
+              <button onClick={() => handleDeleteTask(task.id)} disabled={isLoading}>Delete</button>
             </div>
-            <hr />
+            <div className="calendar-scroll-container">
+              <button onClick={(e) => handleScroll(-1, e)} className="scroll-button left">&lt;</button>
+              <div 
+                className="calendar-window" 
+                ref={el => calendarRefs.current[task.id] = el}
+              >
+                <div className="calendar-section">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const monthsAgo = 11 - i;
+                    const date = new Date(currentYear, currentMonth - 1 - monthsAgo, 1);
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1;
+                    return (
+                      <div key={`${year}-${month}-${task.id}`} className="calendar-wrapper">
+                        <h5>{getMonthName(month)} {year}</h5>
+                        <Calendar year={year} month={month} taskId={task.id} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <button onClick={(e) => handleScroll(1, e)} className="scroll-button right">&gt;</button>
+            </div>
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
 

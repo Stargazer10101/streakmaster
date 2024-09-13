@@ -1,26 +1,198 @@
-.container {
+:root {
+  --primary-color: #007bff;
+  --secondary-color: #6c757d;
+  --background-color: #f8f9fa;
+  --text-color: #333;
+  --border-color: #dee2e6;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.task-input {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  overflow-x: auto; /* Enable horizontal scrolling if needed */
+  margin-bottom: 20px;
 }
 
-.calendar-wrapper {
-  width: calc(100% / 12 - 10px); /* Adjust based on your layout needs */
-  min-width: 60px; /* Set a minimum width to prevent the calendar from shrinking too much */
-  margin: 5px;
-  padding: 5px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-  text-align: center;
+.task-input input {
+  flex-grow: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px 0 0 4px;
 }
 
-.calendar-wrapper h2 {
-  font-size: 10px;
-  margin: 5px 0;
+.task-input button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.task-input button:hover {
+  background-color: #0056b3;
+}
+
+.tasks-container {
+  display: grid;
+  gap: 20px;
 }
 
 .task-wrapper {
-  margin-bottom: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.task-header h3 {
+  margin: 0;
+}
+
+.task-header button {
+  padding: 5px 10px;
+  background-color: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.task-header button:hover {
+  background-color: #bd2130;
+}
+
+.calendar-scroll-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+}
+
+.calendar-window {
+  width: 100%;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+.calendar-section {
+  display: flex;
+  gap: 20px;
+  padding: 10px;
+  width: max-content;
+}
+
+.calendar-wrapper {
+  flex: 0 0 auto;
+  width: 300px;
+}
+
+.scroll-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  z-index: 1;
+  transition: background-color 0.3s ease;
+}
+
+.scroll-button:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.scroll-button.left {
+  left: 0;
+}
+
+.scroll-button.right {
+  right: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .task-input {
+    flex-direction: column;
+  }
+
+  .task-input input,
+  .task-input button {
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  .task-input button {
+    margin-top: 10px;
+  }
+
+  .calendar-wrapper {
+    width: 250px;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background-color: #121212;
+    --text-color: #e0e0e0;
+    --border-color: #333;
+  }
+
+  .task-wrapper {
+    background-color: #1e1e1e;
+  }
+
+  .task-header {
+    background-color: #333;
+  }
+
+  .scroll-button {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .scroll-button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.task-wrapper {
+  animation: fadeIn 0.5s ease-out;
 }
 

@@ -1,16 +1,22 @@
 {
-  "name": "streakmaster",
+  "name": "streakmaster-root",
   "version": "1.0.0",
+  "description": "A full-stack application for tracking daily tasks and building streaks",
   "main": "index.js",
   "scripts": {
+    "start": "node Backend/server.js",
+    "server": "nodemon Backend/server.js",
+    "client": "cd streakmaster && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd Backend && npm install && cd ../streakmaster && npm install",
+    "build": "cd streakmaster && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["streak", "task-tracker", "full-stack"],
   "author": "",
   "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "express": "^4.19.2",
-    "node-localstorage": "^3.0.5"
+  "devDependencies": {
+    "concurrently": "^8.0.1",
+    "nodemon": "^2.0.22"
   }
 }
