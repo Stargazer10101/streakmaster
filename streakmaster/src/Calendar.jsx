@@ -8,15 +8,19 @@ const Calendar = ({ year, month, taskId }) => {
 
   const fetchDates = useCallback(async () => {
     console.log('Fetching dates for taskId:', taskId);
+    if (!taskId) {
+      setSelectedDates([]);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
       const response = await axios.get('/api/dates', { params: { taskId } });
-      setSelectedDates(response.data.dates);
+      setSelectedDates(response.data.dates || []);
       console.log('Fetched dates:', response.data.dates);
     } catch (error) {
       console.error('Error fetching dates:', error);
-      setError('Failed to fetch dates');
+      setSelectedDates([]); // Set to empty array instead of setting error
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +76,10 @@ const Calendar = ({ year, month, taskId }) => {
   };
 
   if (error) return <div className="error">{error}</div>;
+
+  if (selectedDates.length === 0 && !isLoading) {
+    return <div>No dates selected yet. Click on a date to start tracking!</div>;
+  }
 
   return (
     <div className="calendar">

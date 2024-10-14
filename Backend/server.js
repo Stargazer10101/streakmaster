@@ -1,64 +1,45 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs').promises;
-const path = require('path');
-const { body, validationResult } = require('express-validator');
-const { query } = require('express-validator');
+const { body, validationResult, query } = require('express-validator');
+const mongoose = require('mongoose');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-//app.use(cors());
+// MongoDB connection
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
+// Define schemas
+const TaskSchema = new mongoose.Schema({
+  name: String,
+  createdAt: { type: Date, default: Date.now }
+});
 
-// CORS configuration
+const DateSchema = new mongoose.Schema({
+  taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
+  date: String
+});
+
+// Define models
+const Task = mongoose.model('Task', TaskSchema);
+const DateEntry = mongoose.model('DateEntry', DateSchema);
+
+// CORS and JSON middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Allow requests from the frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  credentials: true // Allow cookies (if needed)
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
-
-
 app.use(express.json());
 
-const getFilePath = (id) => path.join(__dirname, `${id}_dates.json`);
-
-const getDateFilePath = (taskId) => path.join(__dirname, `${taskId}_dates.json`);
-
-const getDatesFromFile = async (filePath) => {
-  try {
-    await fs.access(filePath);
-    const data = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(data) || [];
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      return [];
-    }
-    throw error;
-  }
-};
-
-const saveDateToFile = async (filePath, date) => {
-  const dates = await getDatesFromFile(filePath);
-  if (!dates.includes(date)) {
-    dates.push(date);
-    await fs.writeFile(filePath, JSON.stringify(dates), 'utf8');
-  }
-};
-
-const removeDateFromFile = async (filePath, date) => {
-  const dates = await getDatesFromFile(filePath);
-  console.log('Before removal:', dates);
-  const updatedDates = dates.filter(d => d !== date);
-  console.log('After removal:', updatedDates);
-  await fs.writeFile(filePath, JSON.stringify(updatedDates), 'utf8');
-};
-
+// GET /api/dates
 app.get('/api/dates', 
   query('taskId').isString().notEmpty(),
-  async (req, res, next) => {
+  async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -66,20 +47,26 @@ app.get('/api/dates',
       }
 
       const { taskId } = req.query;
-      const filePath = getDateFilePath(taskId);
-      const dates = await getDatesFromFile(filePath);
+      
+      // Check if the task exists
+      const taskExists = await Task.exists({ _id: taskId });
+      if (!taskExists) {
+        return res.json({ dates: [] }); // Return an empty array if task doesn't exist
+      }
 
-      res.json({ dates });
+      const dates = await DateEntry.find({ taskId }).select('date -_id');
+      res.json({ dates: dates.map(d => d.date) });
     } catch (error) {
       console.error('Error fetching dates:', error);
       res.status(500).json({ error: 'Failed to fetch dates' });
     }
 });
 
+// POST /api/dates
 app.post('/api/dates', 
   body('date').isISO8601().toDate(),
   body('taskId').isString().notEmpty(),
-  async (req, res, next) => {
+  async (req, res) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -87,41 +74,28 @@ app.post('/api/dates',
       }
 
       const { date, taskId } = req.body;
-      const dateString = date.toISOString().split('T')[0]; // Convert to YYYY-MM-DD format
-      console.log('Received request to update date:', dateString, 'for task:', taskId);
-      const filePath = getDateFilePath(taskId);
+      const dateString = date.toISOString().split('T')[0];
       
-      const dates = await getDatesFromFile(filePath);
-      console.log('Current dates:', dates);
-      const dateExists = dates.includes(dateString);
+      const existingDate = await DateEntry.findOne({ taskId, date: dateString });
       
-      if (dateExists) {
-        console.log('Date exists, removing:', dateString);
-        await removeDateFromFile(filePath, dateString);
+      if (existingDate) {
+        await DateEntry.deleteOne({ _id: existingDate._id });
       } else {
-        console.log('Date does not exist, adding:', dateString);
-        await saveDateToFile(filePath, dateString);
+        await DateEntry.create({ taskId, date: dateString });
       }
       
-      const updatedDates = await getDatesFromFile(filePath);
-      console.log('Updated dates:', updatedDates);
-      
-      res.json({ dates: updatedDates });
+      const updatedDates = await DateEntry.find({ taskId }).select('date -_id');
+      res.json({ dates: updatedDates.map(d => d.date) });
     } catch (error) {
       console.error('Error updating dates:', error);
       res.status(500).json({ error: 'Failed to update dates' });
     }
 });
 
-// Helper function to get the tasks file path
-const getTasksFilePath = () => path.join(__dirname, 'tasks.json');
-
 // GET /api/tasks
 app.get('/api/tasks', async (req, res) => {
   try {
-    const tasksFilePath = getTasksFilePath();
-    const tasksData = await fs.readFile(tasksFilePath, 'utf8');
-    const tasks = JSON.parse(tasksData);
+    const tasks = await Task.find();
     res.json(tasks);
   } catch (error) {
     console.error('Error reading tasks:', error);
@@ -137,23 +111,7 @@ app.post('/api/tasks', body('name').notEmpty(), async (req, res) => {
   }
 
   try {
-    const tasksFilePath = getTasksFilePath();
-    let tasks = [];
-    try {
-      const tasksData = await fs.readFile(tasksFilePath, 'utf8');
-      tasks = JSON.parse(tasksData);
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    const newTask = {
-      id: Date.now().toString(),
-      name: req.body.name,
-      createdAt: new Date().toISOString()
-    };
-
-    tasks.push(newTask);
-    await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+    const newTask = await Task.create({ name: req.body.name });
     res.status(201).json(newTask);
   } catch (error) {
     console.error('Error creating task:', error);
@@ -165,29 +123,14 @@ app.post('/api/tasks', body('name').notEmpty(), async (req, res) => {
 app.delete('/api/tasks/:id', async (req, res) => {
   try {
     const taskId = req.params.id;
-    const tasksFilePath = getTasksFilePath();
+    const deletedTask = await Task.findByIdAndDelete(taskId);
     
-    // Read existing tasks
-    let tasks = [];
-    try {
-      const tasksData = await fs.readFile(tasksFilePath, 'utf8');
-      tasks = JSON.parse(tasksData);
-    } catch (error) {
-      if (error.code !== 'ENOENT') throw error;
-    }
-
-    // Find the index of the task to delete
-    const taskIndex = tasks.findIndex(task => task.id === taskId);
-
-    if (taskIndex === -1) {
+    if (!deletedTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Remove the task
-    tasks.splice(taskIndex, 1);
-
-    // Write updated tasks back to file
-    await fs.writeFile(tasksFilePath, JSON.stringify(tasks, null, 2));
+    // Also delete associated dates
+    await DateEntry.deleteMany({ taskId });
 
     res.status(200).json({ message: 'Task deleted successfully' });
   } catch (error) {

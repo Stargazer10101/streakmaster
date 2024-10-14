@@ -74,7 +74,7 @@ function App() {
     setError(null);
     try {
       await axios.delete(`api/tasks/${taskId}`);
-      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+      setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
     } catch (err) {
       setError('Failed to delete task. Please try again.');
     } finally {
@@ -117,10 +117,10 @@ function App() {
       </div>
       <div className="tasks-container">
         {tasks.map((task) => (
-          <div key={task.id} className="task-wrapper">
+          <div key={task._id} className="task-wrapper">
             <div className="task-header">
               <h3>{task.name}</h3>
-              <button onClick={() => handleDeleteTask(task.id)} disabled={isLoading}>Delete</button>
+              <button onClick={() => handleDeleteTask(task._id)} disabled={isLoading}>Delete</button>
             </div>
             <div className="calendar-scroll-container">
               <button onClick={(e) => handleScroll(-1, e)} className="scroll-button left">&lt;</button>
