@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { body, validationResult, query } = require('express-validator');
+const { body, validationResult, query, param } = require('express-validator');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -10,7 +10,10 @@ const port = process.env.PORT || 3000;
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);  // Exit the process with failure
+  });
 
 // Define schemas
 const TaskSchema = new mongoose.Schema({
@@ -64,7 +67,7 @@ app.get('/api/dates',
 
 // POST /api/dates
 app.post('/api/dates', 
-  body('date').isISO8601().toDate(),
+  body('date').matches(/^\d{4}-\d{2}-\d{2}$/),  // Validate YYYY-MM-DD format
   body('taskId').isString().notEmpty(),
   async (req, res) => {
     try {
@@ -74,7 +77,7 @@ app.post('/api/dates',
       }
 
       const { date, taskId } = req.body;
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = date;  // No need to convert, it's already in the right format
       
       const existingDate = await DateEntry.findOne({ taskId, date: dateString });
       
@@ -120,24 +123,31 @@ app.post('/api/tasks', body('name').notEmpty(), async (req, res) => {
 });
 
 // DELETE /api/tasks/:id
-app.delete('/api/tasks/:id', async (req, res) => {
-  try {
-    const taskId = req.params.id;
-    const deletedTask = await Task.findByIdAndDelete(taskId);
-    
-    if (!deletedTask) {
-      return res.status(404).json({ error: 'Task not found' });
+app.delete('/api/tasks/:id', 
+  param('id').isMongoId(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
+    try {
+      const taskId = req.params.id;
+      const deletedTask = await Task.findByIdAndDelete(taskId);
+      
+      if (!deletedTask) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
 
-    // Also delete associated dates
-    await DateEntry.deleteMany({ taskId });
+      // Also delete associated dates
+      await DateEntry.deleteMany({ taskId });
 
-    res.status(200).json({ message: 'Task deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting task:', error);
-    res.status(500).json({ error: 'Failed to delete task' });
+      res.status(200).json({ message: 'Task deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      res.status(500).json({ error: 'Failed to delete task' });
+    }
   }
-});
+);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

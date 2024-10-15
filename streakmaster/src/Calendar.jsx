@@ -20,7 +20,7 @@ const Calendar = ({ year, month, taskId }) => {
       console.log('Fetched dates:', response.data.dates);
     } catch (error) {
       console.error('Error fetching dates:', error);
-      setSelectedDates([]); // Set to empty array instead of setting error
+      setError('Failed to fetch dates'); // Set error state instead of clearing selectedDates
     } finally {
       setIsLoading(false);
     }
@@ -75,15 +75,11 @@ const Calendar = ({ year, month, taskId }) => {
     return days;
   };
 
+  if (isLoading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
-
-  if (selectedDates.length === 0 && !isLoading) {
-    return <div>No dates selected yet. Click on a date to start tracking!</div>;
-  }
 
   return (
     <div className="calendar">
-      {isLoading && <div className="loading">Loading...</div>}
       {renderCalendar()}
     </div>
   );
