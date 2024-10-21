@@ -77,21 +77,30 @@ app.post('/api/dates',
       }
 
       const { date, taskId } = req.body;
-      const dateString = date;  // No need to convert, it's already in the right format
-      
-      const existingDate = await DateEntry.findOne({ taskId, date: dateString });
+      console.log('Received request:', { date, taskId });
+
+      // Check if the task exists
+      const taskExists = await Task.exists({ _id: taskId });
+      if (!taskExists) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+
+      const existingDate = await DateEntry.findOne({ taskId, date });
       
       if (existingDate) {
         await DateEntry.deleteOne({ _id: existingDate._id });
+        console.log('Deleted existing date');
       } else {
-        await DateEntry.create({ taskId, date: dateString });
+        await DateEntry.create({ taskId, date });
+        console.log('Created new date');
       }
       
       const updatedDates = await DateEntry.find({ taskId }).select('date -_id');
+      console.log('Sending response:', { dates: updatedDates.map(d => d.date) });
       res.json({ dates: updatedDates.map(d => d.date) });
     } catch (error) {
       console.error('Error updating dates:', error);
-      res.status(500).json({ error: 'Failed to update dates' });
+      res.status(500).json({ error: 'Failed to update dates', details: error.message });
     }
 });
 

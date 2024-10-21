@@ -126,7 +126,7 @@ function App() {
               <button onClick={(e) => handleScroll(-1, e)} className="scroll-button left">&lt;</button>
               <div 
                 className="calendar-window" 
-                ref={el => calendarRefs.current[task.id] = el}
+                ref={el => calendarRefs.current[task._id] = el}
               >
                 <div className="calendar-section">
                   {Array.from({ length: 12 }, (_, i) => {
@@ -135,9 +135,9 @@ function App() {
                     const year = date.getFullYear();
                     const month = date.getMonth() + 1;
                     return (
-                      <div key={`${year}-${month}-${task.id}`} className="calendar-wrapper">
+                      <div key={`${year}-${month}-${task._id}`} className="calendar-wrapper">
                         <h5>{getMonthName(month)} {year}</h5>
-                        <Calendar year={year} month={month} taskId={task.id} />
+                        <Calendar year={year} month={month} taskId={task._id} />
                       </div>
                     );
                   })}
