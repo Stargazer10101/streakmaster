@@ -73,17 +73,17 @@
 @media (prefers-color-scheme: dark) {
   .calendar {
     background-color: #333;
-    color: #fff;
+    color: #fff; /* Light color for text */
   }
 
   .calendar button {
-    background-color: #444;
-    border-color: #555;
-    color: #fff;
+    background-color: #555; /* Dark color for button */
+    border-color: #666; /* Adjusted border color for button */
+    color: #fff; /* Light color for button text */
   }
 
   .calendar button:hover:not(:disabled) {
-    background-color: #555;
+    background-color: #666; /* Slightly lighter on hover */
   }
 
   .empty-day {
@@ -92,7 +92,7 @@
 
   .stored-date {
     background-color: #4CAF50 !important;
-    color: #fff;
+    color: #fff; /* Light color for stored date */
   }
 
   .calendar-loading {
