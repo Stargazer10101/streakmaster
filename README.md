@@ -1,6 +1,7 @@
 # Productivity Streak Tool
 
 A productivity tool that helps users create streaks to reinforce good habits.
+Charts similar to github contributions chart, but for your own day-to-day quests!
 
 ## Features
 
