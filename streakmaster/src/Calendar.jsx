@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000'; // Update this to match your backend URL
+const API_BASE_URL = 'http://localhost:3000'; // Updated to 3000
 
 const Calendar = ({ year, month, taskId }) => {
   const [selectedDates, setSelectedDates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-
-  // fetches the selected dates for a given taskId. Sets the state selectedDates to the
-  // dates fetched from the backend.
   const fetchDates = useCallback(async () => {
-    console.log('Fetching dates for taskId:', taskId);
     if (!taskId) {
       setSelectedDates([]);
       return;
@@ -22,42 +18,31 @@ const Calendar = ({ year, month, taskId }) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/dates`, { params: { taskId } });
       setSelectedDates(response.data.dates || []);
-      console.log('Fetched dates:', response.data.dates);
     } catch (error) {
-      console.error('Error fetching dates:', error.response?.data || error.message);
+      console.error('Error fetching dates:', error);
       setError('Failed to fetch dates');
     } finally {
       setIsLoading(false);
     }
   }, [taskId]);
 
-  //explanation of the below useEffect:
-  //fetchDates() function will run whenever fetchDates function changes. fetchDates function
-  // changes when taskId changes.
   useEffect(() => {
     fetchDates();
   }, [fetchDates]);
 
-
-  //
   const handleDateClick = async (day) => {
-    console.log('Current taskId:', taskId);
     if (!taskId) {
-      console.error('No taskId provided');
       setError('No task selected');
       return;
     }
-
     const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    console.log('Clicking date:', fullDate, 'for taskId:', taskId);
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/dates`, { date: fullDate, taskId: taskId });
+      const response = await axios.post(`${API_BASE_URL}/api/dates`, { date: fullDate, taskId });
       setSelectedDates(response.data.dates);
-      console.log('Updated dates:', response.data.dates);
     } catch (error) {
-      console.error('Error updating date:', error.response?.data || error.message);
+      console.error('Error updating date:', error);
       setError('Failed to update date');
     } finally {
       setIsLoading(false);
@@ -70,17 +55,17 @@ const Calendar = ({ year, month, taskId }) => {
     const days = [];
 
     for (let i = 0; i < firstDayOfWeek; i++) {
-      days.push(<div key={`empty-${i}`} className="empty-day"></div>);
+      days.push(<div key={`empty-${i}`} className="w-[2.5vw] h-[2.5vw] min-w-[18px] min-h-[18px] max-w-[24px] max-h-[24px]"></div>);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
       const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const isSelected = selectedDates.includes(fullDate);
-      console.log(`Date ${fullDate} is selected:`, isSelected);
       days.push(
         <button
           key={day}
-          className={`day ${isSelected ? 'selected' : ''}`}
+          className={`w-[2.5vw] h-[2.5vw] min-w-[18px] min-h-[18px] max-w-[24px] max-h-[24px] rounded-sm text-[min(1.8vw,10px)] flex items-center justify-center transition-colors
+            ${isSelected ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
           onClick={() => handleDateClick(day)}
           disabled={isLoading}
         >
@@ -92,11 +77,16 @@ const Calendar = ({ year, month, taskId }) => {
     return days;
   };
 
-  if (isLoading) return <div className="loading">Loading...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (isLoading) return <div className="text-center text-blue-500 text-sm">Loading...</div>;
+  if (error) return <div className="text-center text-red-500 text-sm">{error}</div>;
 
   return (
-    <div className="calendar">
+    <div className="grid grid-cols-7 gap-[0.5vw] min-w-[140px] max-w-[200px]">
+      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+        <div key={index} className="text-center text-[min(2vw,12px)] font-medium text-gray-500 dark:text-gray-400">
+          {day}
+        </div>
+      ))}
       {renderCalendar()}
     </div>
   );

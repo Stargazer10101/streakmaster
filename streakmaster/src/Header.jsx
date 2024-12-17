@@ -1,12 +1,11 @@
 import React from 'react';
 
 const Header = () => {
-    return (
-        <header className="app-header">
-            <h1>StreakMaster</h1>
-            <p>Track your daily quests and build streaks!</p>
-        </header>
-    );
-}
+  return (
+    <header className="bg-blue-600 text-white p-4 shadow-md">
+      <h1 className="text-xl sm:text-2xl font-bold">StreakMaster</h1>
+    </header>
+  );
+};
 
 export default Header;

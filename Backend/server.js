@@ -5,14 +5,14 @@ const { body, validationResult, query, param } = require('express-validator');
 const mongoose = require('mongoose');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000; // Reverted to 3000
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => {
     console.error('MongoDB connection error:', err);
-    process.exit(1);  // Exit the process with failure
+    process.exit(1);
   });
 
 // Define schemas
@@ -51,10 +51,9 @@ app.get('/api/dates',
 
       const { taskId } = req.query;
       
-      // Check if the task exists
       const taskExists = await Task.exists({ _id: taskId });
       if (!taskExists) {
-        return res.json({ dates: [] }); // Return an empty array if task doesn't exist
+        return res.json({ dates: [] });
       }
 
       const dates = await DateEntry.find({ taskId }).select('date -_id');
@@ -67,7 +66,7 @@ app.get('/api/dates',
 
 // POST /api/dates
 app.post('/api/dates', 
-  body('date').matches(/^\d{4}-\d{2}-\d{2}$/),  // Validate YYYY-MM-DD format
+  body('date').matches(/^\d{4}-\d{2}-\d{2}$/),
   body('taskId').isString().notEmpty(),
   async (req, res) => {
     try {
@@ -79,7 +78,6 @@ app.post('/api/dates',
       const { date, taskId } = req.body;
       console.log('Received request:', { date, taskId });
 
-      // Check if the task exists
       const taskExists = await Task.exists({ _id: taskId });
       if (!taskExists) {
         return res.status(404).json({ error: 'Task not found' });
@@ -147,7 +145,6 @@ app.delete('/api/tasks/:id',
         return res.status(404).json({ error: 'Task not found' });
       }
 
-      // Also delete associated dates
       await DateEntry.deleteMany({ taskId });
 
       res.status(200).json({ message: 'Task deleted successfully' });
@@ -155,8 +152,7 @@ app.delete('/api/tasks/:id',
       console.error('Error deleting task:', error);
       res.status(500).json({ error: 'Failed to delete task' });
     }
-  }
-);
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -166,4 +162,12 @@ app.use((err, req, res, next) => {
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
+});
+
+process.on('SIGINT', () => {
+  console.log('Shutting down server...');
+  mongoose.connection.close(() => {
+    console.log('MongoDB connection closed');
+    process.exit(0);
+  });
 });
