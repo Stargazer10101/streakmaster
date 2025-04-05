@@ -9,16 +9,18 @@ Charts similar to github contributions chart, but for your own day-to-day quests
 - Build and maintain streaks for your goals.
 - Gain insights into your habits and productivity patterns.
 
+![](images/frontend.png)
+
 ## Getting Started
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/your-username/your-repository-name.git
+   git clone https://github.com/Stargazer10101/streakmaster.git
    ```
 
 2. Navigate to the project directory:
    ```bash
-   cd your-repository-name
+   cd streakmaster
    ```
 
 3. Follow the setup instructions (e.g., install dependencies, run the app).
