@@ -9,7 +9,9 @@ Charts similar to github contributions chart, but for your own day-to-day quests
 - Build and maintain streaks for your goals.
 - Gain insights into your habits and productivity patterns.
 
-![](images/frontend.png)
+![Screenshot 2025-05-05 at 10 47 06 AM](https://github.com/user-attachments/assets/82eccc8e-a8e4-400b-be2b-278d1da42d35)
+
+![Screenshot 2025-05-05 at 10 52 04 AM](https://github.com/user-attachments/assets/b770ff90-a158-423d-aab1-e730c6b2fdf2)
 
 ## Getting Started
 
