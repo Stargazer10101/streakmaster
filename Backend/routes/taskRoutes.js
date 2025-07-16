@@ -11,6 +11,6 @@ router.get('/', protect, getAllTasks);
 router.post('/', protect, body('name').notEmpty(), createTask);
 
 // @route   DELETE /api/tasks/:id
-router.delete('/:id', protect, param('id').isMongoId(), deleteTask);
+router.delete('/:id', protect, deleteTask);
 
 module.exports = router; 

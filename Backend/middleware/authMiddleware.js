@@ -1,5 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+
+const USERS_FILE = path.join(__dirname, '../users.json');
+function readUsers() {
+  if (!fs.existsSync(USERS_FILE)) return [];
+  return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+}
 
 const protect = async (req, res, next) => {
   let token;
@@ -16,7 +23,8 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      const users = readUsers();
+      req.user = users.find(u => u._id === decoded.id);
 
       if (!req.user) {
         return res.status(401).json({ error: 'Not authorized, user not found' });

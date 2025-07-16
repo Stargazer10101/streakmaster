@@ -1,5 +1,17 @@
-const User = require('../models/User');
+const fs = require('fs');
+const path = require('path');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+const USERS_FILE = path.join(__dirname, '../users.json');
+
+function readUsers() {
+  if (!fs.existsSync(USERS_FILE)) return [];
+  return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8'));
+}
+function writeUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+}
 
 // Generate JWT
 const generateToken = (id) => {
@@ -14,28 +26,29 @@ const generateToken = (id) => {
 const signup = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    const users = readUsers();
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = users.find(u => u.email === email);
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
-
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     // Create user
-    const user = await User.create({
+    const user = {
+      _id: Date.now().toString(),
       email,
-      password,
+      password: hashedPassword,
+      createdAt: new Date().toISOString()
+    };
+    users.push(user);
+    writeUsers(users);
+    res.status(201).json({
+      _id: user._id,
+      email: user.email,
+      token: generateToken(user._id),
     });
-
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -48,19 +61,17 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+    const users = readUsers();
     // Check for user email
-    const user = await User.findOne({ email }).select('+password');
+    const user = users.find(u => u.email === email);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
     // Check if password matches
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
     res.json({
       _id: user._id,
       email: user.email,

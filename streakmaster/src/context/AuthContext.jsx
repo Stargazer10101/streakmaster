@@ -44,11 +44,13 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       setUser(userData);
       setIsAuthenticated(true);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`; // Set header immediately
     } else {
       localStorage.removeItem('authToken');
       setToken(null);
       setUser(null);
       setIsAuthenticated(false);
+      delete axios.defaults.headers.common['Authorization']; // Remove header immediately
     }
     setError(null);
   };

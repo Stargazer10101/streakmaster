@@ -10,7 +10,7 @@ router.get('/', protect, query('taskId').isString().notEmpty(), getDatesForTask)
 // @route   POST /api/dates
 router.post('/', 
   protect,
-  body('date').matches(/^\d{4}-\d{2}-\d{2}$/),
+  body('date').isString().notEmpty(),
   body('taskId').isString().notEmpty(),
   addOrRemoveDate
 );

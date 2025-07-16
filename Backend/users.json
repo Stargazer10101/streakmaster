@@ -1,0 +1,14 @@
+[
+  {
+    "_id": "1752655768476",
+    "email": "asdf@gmail.com",
+    "password": "$2a$10$co2Yf8.QM8W0JfhdzbEhmeCr3Sfe.zperis.uQKM4Gk4Yb5BUopN.",
+    "createdAt": "2025-07-16T08:49:28.476Z"
+  },
+  {
+    "_id": "1752659078928",
+    "email": "1234@gmail.com",
+    "password": "$2a$10$n/xWsurGHfZPxvHNFrA1IeSl/5SVbsntXKwrGNVFD1myL.8e43r5q",
+    "createdAt": "2025-07-16T09:44:38.928Z"
+  }
+]

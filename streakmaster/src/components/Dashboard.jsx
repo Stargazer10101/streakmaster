@@ -69,7 +69,7 @@ function Dashboard() {
     setError(null);
     try {
       await axios.delete(`/api/tasks/${taskId}`);
-      setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
     } catch (err) {
       if (err.response?.status === 401) {
         setError('Session expired. Please log in again.');
@@ -135,7 +135,7 @@ function Dashboard() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Add a new quest..."
+              placeholder="Add a new quest (eg. Gym, Running...)"
               className="flex-grow px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
                 dark:focus:ring-indigo-400 dark:focus:border-indigo-400
@@ -159,11 +159,11 @@ function Dashboard() {
         </div>
         <div className="flex-1 space-y-6">
           {tasks.map((task) => (
-            <div key={task._id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
               <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-600 to-purple-700 dark:from-gray-800 dark:to-gray-900 text-white">
                 <h3 className="text-base sm:text-lg font-semibold">{task.name}</h3>
                 <button
-                  onClick={() => handleDeleteTask(task._id)}
+                  onClick={() => handleDeleteTask(task.id)}
                   disabled={isLoading}
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 rounded-md 
                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
@@ -173,7 +173,7 @@ function Dashboard() {
               </div>
               <div className="relative p-4">
                 <button
-                  onClick={() => handleScroll(-1, task._id)}
+                  onClick={() => handleScroll(-1, task.id)}
                   className="scroll-button absolute left-0 top-1/2 transform -translate-y-1/2 
                     bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 
                     z-10 hidden transition-all duration-150"
@@ -181,11 +181,11 @@ function Dashboard() {
                   &lt;
                 </button>
                 <div
-                  id={`calendar-window-${task._id}`}
+                  id={`calendar-window-${task.id}`}
                   className="calendar-window overflow-x-auto scroll-smooth 
                     scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 
                     dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
-                  ref={el => (scrollRefs.current[task._id] = el)}
+                  ref={el => (scrollRefs.current[task.id] = el)}
                 >
                   <div className="flex gap-4 p-3 min-w-max">
                     {Array.from({ length: 12 }, (_, i) => {
@@ -195,7 +195,7 @@ function Dashboard() {
                       const month = date.getMonth() + 1;
                       return (
                         <div
-                          key={`${year}-${month}-${task._id}`}
+                          key={`${year}-${month}-${task.id}`}
                           className="calendar-wrapper flex-shrink-0 w-[18vw] min-w-[160px] max-w-[240px]
                             bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 
                             rounded-md p-3"
@@ -204,14 +204,14 @@ function Dashboard() {
                             mb-3 text-center">
                             {getMonthName(month)} {year}
                           </h5>
-                          <Calendar year={year} month={month} taskId={task._id} />
+                          <Calendar year={year} month={month} taskId={task.id} />
                         </div>
                       );
                     })}
                   </div>
                 </div>
                 <button
-                  onClick={() => handleScroll(1, task._id)}
+                  onClick={() => handleScroll(1, task.id)}
                   className="scroll-button absolute right-0 top-1/2 transform -translate-y-1/2 
                     bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 
                     z-10 hidden transition-all duration-150"
