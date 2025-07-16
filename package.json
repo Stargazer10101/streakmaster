@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node Backend/server.js",
     "server": "nodemon Backend/server.js",
-    "client": "cd streakmaster && npm run dev",
+    "client": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-all": "npm install && cd Backend && npm install && cd ../streakmaster && npm install",
-    "build": "cd streakmaster && npm run build",
+    "install-all": "npm install && cd Backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
