@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000'; // Updated to 3000
-
 const Calendar = ({ year, month, taskId }) => {
   const [selectedDates, setSelectedDates] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +14,7 @@ const Calendar = ({ year, month, taskId }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/dates`, { params: { taskId } });
+      const response = await axios.get('/api/dates', { params: { taskId } });
       setSelectedDates(response.data.dates || []);
     } catch (error) {
       console.error('Error fetching dates:', error);
@@ -39,7 +37,7 @@ const Calendar = ({ year, month, taskId }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/dates`, { date: fullDate, taskId });
+      const response = await axios.post('/api/dates', { date: fullDate, taskId });
       setSelectedDates(response.data.dates);
     } catch (error) {
       console.error('Error updating date:', error);

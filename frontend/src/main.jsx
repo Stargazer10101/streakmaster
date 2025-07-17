@@ -7,7 +7,7 @@ import { AuthProvider } from './context/AuthContext'
 import './index.css'
 
 // Set axios defaults
-axios.defaults.baseURL = 'http://localhost:3000'
+// axios.defaults.baseURL = 'http://localhost:3000'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
